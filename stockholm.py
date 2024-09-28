@@ -3,7 +3,6 @@ import os
 import sys
 
 from cryptography.fernet import Fernet
-from tqdm import tqdm
 from colorama import Fore, Style
 
 
@@ -48,7 +47,8 @@ def encrypt_file(file_name, key, silent):
             print("Error: file '{file_name}' not found.")
             sys.exit(1)
     else:
-        print(Fore.YELLOW + f"The file {file_name} does not have a matching extension." + Style.RESET_ALL)
+        if not silent:
+            print(Fore.YELLOW + f"The file {file_name} does not have a matching extension." + Style.RESET_ALL)
 
 
 def generate_key():
@@ -78,38 +78,37 @@ def list_dir(base_dir, key, silent):
         sys.exit(1)
 
 
-def reverse_encryption(base_dir, silent):
-    try:
-        with open("key.key", "rb") as key_file:
-            key = key_file.read()
-    except FileNotFoundError:
-        print("Error: key file not found.")
-        sys.exit(1)
+def reverse_encryption(base_dir, silent, key):
     try:
         with os.scandir(base_dir) as entries:
             for entry in entries:
                 if entry.is_dir():
-                    reverse_encryption(entry.path, silent)
+                    reverse_encryption(entry.path, silent, key)
                 else:
                     if base_dir.endswith('/'):
                         file_name = base_dir + entry.name
                     else:
                         file_name = base_dir + '/' + entry.name
                     if file_name.endswith('.ft'):
-                        f = Fernet(key)
                         try:
-                            with open(file_name, "rb") as file:
-                                file_data = file.read()
-                        except FileNotFoundError:
-                            print(f"Error: file '{file_name}' not found.")
-                            sys.exit(1)
-                        decrypted_data = f.decrypt(file_data)
-                        if not silent:
-                            print(Fore.GREEN + f"Decrypting... {file_name}" + Style.RESET_ALL)
-                        new_file_name = file_name[:-3]
-                        os.rename(file_name, new_file_name)
-                        with open(new_file_name, "wb") as file:
-                            file.write(decrypted_data)
+                            f = Fernet(key)
+                            try:
+                                with open(file_name, "rb") as file:
+                                    file_data = file.read()
+                            except FileNotFoundError:
+                                print(f"Error: file '{file_name}' not found.")
+                                sys.exit(1)
+                            decrypted_data = f.decrypt(file_data)
+                            if not silent:
+                                print(Fore.GREEN + f"Decrypting... {file_name}" + Style.RESET_ALL)
+                            new_file_name = file_name[:-3]
+                            os.rename(file_name, new_file_name)
+                            with open(new_file_name, "wb") as file:
+                                file.write(decrypted_data)
+                        except ValueError:
+                            if not silent:
+                                print(f"Error: key '{key.decode()}' is incorrect.")
+                                sys.exit(1)
     except FileNotFoundError:
         print(f"Directory not found: '{base_dir}'")
         sys.exit(1)
@@ -139,7 +138,8 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     if args.reverse:
-        reverse_encryption(base_dir, args.silent)
+        key = args.reverse.encode()
+        reverse_encryption(base_dir, args.silent, key)
         sys.exit(0)
     key = generate_key()
     list_dir(base_dir, key, args.silent)
