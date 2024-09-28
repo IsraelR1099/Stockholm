@@ -2,6 +2,7 @@ NAME := stockholm.py
 DIR := infection
 
 all:
+	chmod +x $(NAME)
 	@echo "Usage ./$(NAME)"
 
 setup:
