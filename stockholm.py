@@ -116,7 +116,7 @@ def reverse_encryption(base_dir, silent, key):
 
 
 if __name__ == '__main__':
-    base_dir = './infection/'
+    base_dir = os.path.expanduser('~/infection/')
     parser = argparse.ArgumentParser(
     description='A ransomware simulation tool developed for the Linux platform.',
     )
